@@ -13,8 +13,8 @@ import db
 from transformers import pipeline
 
 
-# Modelo de sentimiento español entrenado en BERT con 6 categorías
-MODEL_NAME = "ignacio-ave/beto-sentiment-analysis-spanish"
+# Modelo de sentimiento español RoBERTuito con 3 categorías
+MODEL_NAME = "pysentimiento/robertuito-sentiment-analysis"
 
 
 def analyze_articles_batch(articles: list[db.ArticleRow], batch_size: int = 32) -> list[tuple[str, str, float]]:
@@ -23,12 +23,9 @@ def analyze_articles_batch(articles: list[db.ArticleRow], batch_size: int = 32) 
     Returns: lista de (article_id, label, score)
     
     Labels posibles del modelo:
-    - VERY_POSITIVE
-    - POSITIVE
-    - NEUTRAL
-    - UNDEFINED
-    - NEGATIVE
-    - VERY_NEGATIVE
+    - POS (Positivo)
+    - NEU (Neutral)
+    - NEG (Negativo)
     """
     print(f"🔮 Cargando modelo: {MODEL_NAME}")
     classifier = pipeline('sentiment-analysis', model=MODEL_NAME, device=-1)  # CPU

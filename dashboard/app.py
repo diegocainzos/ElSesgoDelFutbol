@@ -28,21 +28,15 @@ st.set_page_config(
 
 # Mapeo de sentimiento a score numérico para ranking
 SENTIMENT_SCORES = {
-    "VERY POSITIVE": 2,
-    "POSITIVE": 1,
-    "NEUTRAL": 0,
-    "UNDEFINED": 0,
-    "NEGATIVE": -1,
-    "VERY NEGATIVE": -2,
+    "POS": 1,
+    "NEU": 0,
+    "NEG": -1,
 }
 
 SENTIMENT_COLORS = {
-    "VERY POSITIVE": "#00a651",
-    "POSITIVE": "#90ee90",
-    "NEUTRAL": "#d3d3d3",
-    "UNDEFINED": "#ffa500",
-    "NEGATIVE": "#ff6b6b",
-    "VERY NEGATIVE": "#d32f2f",
+    "POS": "#00a651",     # Verde
+    "NEU": "#d3d3d3",     # Gris
+    "NEG": "#d32f2f",     # Rojo
 }
 
 
@@ -124,7 +118,7 @@ def plot_sentiment_distribution(df):
     pivot = sentiment_counts.pivot(index='player', columns='sentiment_label', values='percentage').fillna(0)
     
     # Ordenar columnas por orden lógico
-    label_order = ['VERY POSITIVE', 'POSITIVE', 'NEUTRAL', 'UNDEFINED', 'NEGATIVE', 'VERY NEGATIVE']
+    label_order = ['POS', 'NEU', 'NEG']
     pivot = pivot[[col for col in label_order if col in pivot.columns]]
     
     fig = go.Figure(data=go.Heatmap(
@@ -216,15 +210,15 @@ def main():
         st.metric("Total Artículos", len(df))
     
     with col2:
-        positive_pct = (df['sentiment_label'].isin(['VERY POSITIVE', 'POSITIVE']).sum() / len(df) * 100)
+        positive_pct = (df['sentiment_label'] == 'POS').sum() / len(df) * 100
         st.metric("% Positivo", f"{positive_pct:.1f}%")
     
     with col3:
-        negative_pct = (df['sentiment_label'].isin(['VERY NEGATIVE', 'NEGATIVE']).sum() / len(df) * 100)
+        negative_pct = (df['sentiment_label'] == 'NEG').sum() / len(df) * 100
         st.metric("% Negativo", f"{negative_pct:.1f}%")
     
     with col4:
-        neutral_pct = (df['sentiment_label'].isin(['NEUTRAL', 'UNDEFINED']).sum() / len(df) * 100)
+        neutral_pct = (df['sentiment_label'] == 'NEU').sum() / len(df) * 100
         st.metric("% Neutral", f"{neutral_pct:.1f}%")
     
     st.markdown("---")

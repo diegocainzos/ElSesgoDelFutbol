@@ -2,7 +2,7 @@ from transformers import pipeline
 
 
 # Modelo de sentimiento español entrenado en BERT
-MODEL_NAME = "ignacio-ave/beto-sentiment-analysis-spanish"
+MODEL_NAME = "pysentimiento/robertuito-sentiment-analysis"
 
 classifier = pipeline('sentiment-analysis', model=MODEL_NAME)  #
 test_phrases = [

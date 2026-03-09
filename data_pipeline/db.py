@@ -22,6 +22,11 @@ class Base(DeclarativeBase):
     pass
 
 
+class PlayerRow(Base):
+    id              = Column(__name_pos=String, primary_key=True)  # hash(url)
+    name            = Column("name", nullable=False)
+    club            = Column("club", nullable=True)
+
 class ArticleRow(Base):
     __tablename__ = "articles"
 
@@ -35,7 +40,7 @@ class ArticleRow(Base):
     fetched_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # NLP — NULL hasta que pase por el modelo
-    # Labels posibles: VERY_POSITIVE, POSITIVE, NEUTRAL, UNDEFINED, NEGATIVE, VERY_NEGATIVE
+    # Labels posibles: POS (Positivo), NEU (Neutral), NEG (Negativo)
     sentiment_label = Column(String)     # La label del modelo
     sentiment_score = Column(Float)      # Confianza del modelo para esa label (0-1)
 
@@ -64,7 +69,7 @@ def save_articles(articles: list) -> tuple[int, int]:
     inserted = 0
     skipped = 0
 
-    with Session(engine) as session:
+    with Session(bind=engine) as session:
         for article in articles:
             article_id = _article_id(article.url)
 
