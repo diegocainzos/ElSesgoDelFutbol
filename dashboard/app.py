@@ -58,14 +58,14 @@ TEAM_LOGOS: dict[str, str] = {
     "Deportivo Alavés":   "https://a.espncdn.com/i/teamlogos/soccer/500/96.png",
     "RCD Mallorca":       "https://a.espncdn.com/i/teamlogos/soccer/500/84.png",
     "RCD Espanyol":       "https://a.espncdn.com/i/teamlogos/soccer/500/88.png",
-    "Levante UD": "",
-    "Elche": "",
-    "Oviedo" : "",
+    "Levante UD":         "https://a.espncdn.com/i/teamlogos/soccer/500/1538.png",
+    "Elche CF ":          "https://a.espncdn.com/i/teamlogos/soccer/500/3751.png",
+    "Real Oviedo" :       "https://a.espncdn.com/i/teamlogos/soccer/500/92.png",
 }
 
 # Logos de LaLiga y Marca para branding del dashboard
-LALIGA_LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/LaLiga_logo.svg/160px-LaLiga_logo.svg.png"
-MARCA_LOGO_URL  = "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Logotipo_de_Marca.svg/160px-Logotipo_de_Marca.svg.png"
+LALIGA_LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/LaLiga_logo_2023.svg/960px-LaLiga_logo_2023.svg.png"
+MARCA_LOGO_URL  = "https://cdn.freebiesupply.com/logos/large/2x/marca-com-1-logo-png-transparent.png"
 
 
 def load_articles(start_date=None, end_date=None):
@@ -102,8 +102,8 @@ def load_articles(start_date=None, end_date=None):
         return pd.DataFrame()
 
 
-def calculate_player_scores(df):
-    """Calcula el score agregado por jugador."""
+def calculate_player_scores(df, min_articles: int = 10):
+    """Calcula el score agregado por jugador. Excluye jugadores con menos de min_articles."""
     df['numeric_score'] = df['sentiment_label'].map(SENTIMENT_SCORES)
     
     player_stats = df.groupby('player').agg({
@@ -112,6 +112,7 @@ def calculate_player_scores(df):
     }).rename(columns={'player': 'total_articles'})
     
     player_stats = player_stats.reset_index()
+    player_stats = player_stats[player_stats['total_articles'] >= min_articles]
     player_stats = player_stats.sort_values('numeric_score', ascending=False)
     
     return player_stats
@@ -138,7 +139,12 @@ def plot_ranking(player_stats):
 
 
 def plot_sentiment_distribution(df):
-    """Heatmap de distribución de sentimientos por jugador."""
+    """Heatmap de distribución de sentimientos por jugador (mín. 10 artículos)."""
+    # Excluir jugadores con menos de 10 artículos
+    player_counts = df.groupby('player').size()
+    valid_players = player_counts[player_counts >= 10].index
+    df = df[df['player'].isin(valid_players)]
+
     # Calcular porcentajes
     sentiment_counts = df.groupby(['player', 'sentiment_label']).size().reset_index(name='count')
     total_per_player = df.groupby('player').size().reset_index(name='total')
@@ -757,7 +763,7 @@ def main():
             selected_teams = st.multiselect(
                 "🏟️ Equipos",
                 available_teams,
-                default=["Real Madrid", "FC Barcelona", "Atlético de Madrid"],
+                default=None,
             )
             if selected_teams:
                 df = df[df['team'].isin(selected_teams)]

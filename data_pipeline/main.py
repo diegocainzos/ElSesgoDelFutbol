@@ -58,7 +58,7 @@ def fetch_all_players() -> list[Article]:
     teams = load_players_config()
     all_articles = []
     for team in teams:
-        club = team["club"]
+        club = team["name"]
         for player in team["players"]:
             name = player["name"]
             slug = player["slug"]

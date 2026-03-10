@@ -49,7 +49,7 @@ def analyze_articles_batch(articles: list[db.ArticleRow], batch_size: int = 32) 
         batch = texts[i:i + batch_size]
         batch_ids = article_ids[i:i + batch_size]
         
-        predictions = classifier(batch)
+        predictions = classifier(batch, truncation=True, max_length=128)
         
         for article_id, pred in zip(batch_ids, predictions):
             label = pred['label']
