@@ -1,38 +1,20 @@
-import feedparser
+import tomllib
 from dataclasses import dataclass
+from pathlib import Path
+
+import feedparser
 
 import db
 
 MARCA_RSS_BASE = "https://www.marca.com/rss/googlenews/personajes/{slug}.xml"
-
-# Slug = la parte de la URL: marca.com/personajes/{slug}.html
-# Para añadir un jugador: busca en Google "marca <nombre>" y copia el slug de la URL
-PLAYERS: dict[str, str] = {
-    "Courtois":        "courtois",
-    "Lunin":           "andriy-lunin",
-    "Carvajal":        "dani-carvajal",
-    "Militao":         "eder-militao",
-    "Alaba":           "david-alaba",
-    "Rudiger":         "antonio-rudiger",
-    "Vallejo":         "jesus-vallejo",
-    "Fran Garcia":     "fran-garcia",
-    "Mendy":           "ferland-mendy",
-    "Tchouameni":      "aurelien-tchouameni",
-    "Camavinga":       "camavinga",
-    "Valverde":        "fede-valverde",
-    "Bellingham":      "jude-bellingham",
-    "Güler":           "arda-guler",
-    "Vinicius":        "vinicius-junior",
-    "Rodrygo":         "rodrygo-goes",
-    "Brahim":          "brahim-diaz",
-    "Mbappé":          "mbappe",
-    "Endrick":         "endrick-felipe",
-}
+_PLAYERS_CONFIG = Path(__file__).parent.parent / "data" / "players.toml"
 
 
 @dataclass
 class Article:
     player: str
+    club: str
+    slug: str
     title: str
     url: str
     published: str
@@ -40,7 +22,14 @@ class Article:
     author: str = ""
 
 
-def fetch_player_articles(player_name: str, slug: str) -> list[Article]:
+def load_players_config() -> list[dict]:
+    """Load teams and players from data/players.toml."""
+    with open(_PLAYERS_CONFIG, "rb") as f:
+        config = tomllib.load(f)
+    return config["teams"]
+
+
+def fetch_player_articles(player_name: str, slug: str, club: str) -> list[Article]:
     """Obtiene TODOS los artículos disponibles en el RSS del jugador (sin límite)."""
     feed_url = MARCA_RSS_BASE.format(slug=slug)
     feed = feedparser.parse(feed_url)
@@ -50,10 +39,11 @@ def fetch_player_articles(player_name: str, slug: str) -> list[Article]:
         return []
 
     articles = []
-    # Sin límite: procesa todos los entries del feed
     for entry in feed.entries:
         articles.append(Article(
             player=player_name,
+            club=club,
+            slug=slug,
             title=entry.get("title", ""),
             url=entry.get("link", ""),
             published=entry.get("published", ""),
@@ -64,13 +54,18 @@ def fetch_player_articles(player_name: str, slug: str) -> list[Article]:
 
 
 def fetch_all_players() -> list[Article]:
-    """Obtiene todos los artículos de todos los jugadores (sin límite)."""
+    """Obtiene todos los artículos de todos los equipos y jugadores."""
+    teams = load_players_config()
     all_articles = []
-    for player_name, slug in PLAYERS.items():
-        print(f"Fetching {player_name}...")
-        articles = fetch_player_articles(player_name, slug)
-        print(f"  → {len(articles)} artículos")
-        all_articles.extend(articles)
+    for team in teams:
+        club = team["club"]
+        for player in team["players"]:
+            name = player["name"]
+            slug = player["slug"]
+            print(f"Fetching {name} ({club})...")
+            articles = fetch_player_articles(name, slug, club)
+            print(f"  → {len(articles)} artículos")
+            all_articles.extend(articles)
     return all_articles
 
 

@@ -4,7 +4,7 @@
 
 set -e  # Salir si hay algún error
 
-cd "$(dirname "$0")"
+#cd "$(dirname "$0")"
 
 echo "════════════════════════════════════════════════════════════"
 echo "🔄 ACTUALIZANDO BASE DE DATOS"

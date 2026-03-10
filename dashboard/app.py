@@ -1,5 +1,5 @@
 """
-Dashboard de Análisis de Sentimiento - Prensa Deportiva Real Madrid
+Dashboard de Análisis de Sentimiento - Prensa Deportiva
 """
 
 import sys
@@ -10,8 +10,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session, joinedload
 
 # Añadir data_pipeline al path
 sys.path.insert(0, str(Path(__file__).parent.parent / "data_pipeline"))
@@ -20,7 +20,7 @@ import db
 
 # Configuración de la página
 st.set_page_config(
-    page_title="Sentimiento Prensa - Real Madrid",
+    page_title="Sentimiento Prensa Deportiva",
     page_icon="⚽",
     layout="wide",
 )
@@ -44,25 +44,29 @@ def load_articles(start_date=None, end_date=None):
     """Carga artículos de la DB con filtros opcionales de fecha."""
     try:
         with Session(db.engine) as session:
-            stmt = select(db.ArticleRow).where(db.ArticleRow.sentiment_label.is_not(None))
-            
+            stmt = (
+                select(db.ArticleRow)
+                .options(joinedload(db.ArticleRow.player_rel))
+                .where(db.ArticleRow.sentiment_label.is_not(None))
+            )
+
             if start_date:
                 stmt = stmt.where(db.ArticleRow.published_at >= start_date)
             if end_date:
                 stmt = stmt.where(db.ArticleRow.published_at <= end_date)
-            
-            articles = list(session.scalars(stmt).all())
-            
-            # Convertir a DataFrame
+
+            articles = list(session.scalars(stmt).unique().all())
+
             data = [{
                 'player': a.player,
+                'team': a.club,
                 'title': a.title,
                 'url': a.url,
                 'published_at': a.published_at,
                 'sentiment_label': a.sentiment_label,
                 'sentiment_score': a.sentiment_score,
             } for a in articles]
-            
+
             return pd.DataFrame(data)
     except Exception as e:
         st.error(f"Error al cargar artículos de la base de datos: {e}")
@@ -164,9 +168,45 @@ def plot_player_pie(df, player):
     return fig
 
 
+def calculate_team_stats(df: pd.DataFrame) -> pd.DataFrame:
+    """Calcula % de cada label por equipo. Ordenado de mayor a menor % positivo."""
+    rows = []
+    for team in sorted(df['team'].unique()):
+        team_df = df[df['team'] == team]
+        total = len(team_df)
+        rows.append({
+            'Equipo': team,
+            '% Positivo': round((team_df['sentiment_label'] == 'POS').sum() / total * 100, 1),
+            '% Negativo': round((team_df['sentiment_label'] == 'NEG').sum() / total * 100, 1),
+            '% Neutro':   round((team_df['sentiment_label'] == 'NEU').sum() / total * 100, 1),
+            'Total artículos': total,
+        })
+    return pd.DataFrame(rows).sort_values('% Positivo', ascending=False).reset_index(drop=True)
+
+
+def plot_team_pie(df: pd.DataFrame, team: str):
+    """Pie chart de distribución de sentimiento para un equipo."""
+    team_df = df[df['team'] == team]
+    counts = team_df['sentiment_label'].value_counts().reset_index()
+    counts.columns = ['label', 'count']
+
+    fig = px.pie(
+        counts,
+        names='label',
+        values='count',
+        title=f'Distribución de sentimiento — {team}',
+        color='label',
+        color_discrete_map=SENTIMENT_COLORS,
+    )
+    fig.update_traces(textinfo='label+percent',
+                      hovertemplate='%{label}: %{value} artículos<br>%{percent}<extra></extra>')
+    fig.update_layout(height=400)
+    return fig
+
+
 def main():
-    st.title("⚽ Análisis de Sentimiento - Prensa Real Madrid")
-    st.markdown("Análisis automático del tono de la prensa deportiva sobre jugadores del Real Madrid")
+    st.title("⚽ Análisis de Sentimiento - Prensa Deportiva")
+    st.markdown("Análisis automático del tono de la prensa deportiva sobre jugadores de fútbol")
     
     st.markdown("---")
     
@@ -203,6 +243,17 @@ def main():
         st.error("No hay artículos en el periodo seleccionado.")
         return
     
+    # Team filter — only shown when there are multiple teams in the data
+    available_teams = sorted(df['team'].unique())
+    if len(available_teams) > 1:
+        selected_teams = st.multiselect("Equipos", available_teams, default=["Real Madrid", "FC Barcelona", "Atlético de Madrid"])
+        if selected_teams:
+            df = df[df['team'].isin(selected_teams)]
+    
+    if df.empty:
+        st.warning("No hay artículos para los equipos seleccionados.")
+        return
+    
     # Métricas principales
     col1, col2, col3, col4 = st.columns(4)
     
@@ -222,9 +273,35 @@ def main():
         st.metric("% Neutral", f"{neutral_pct:.1f}%")
     
     st.markdown("---")
-    
+
     # ============================================================
-    # SECCIÓN 2: COMPARATIVA GENERAL
+    # SECCIÓN 2: RANKING DE EQUIPOS  (solo con múltiples equipos)
+    # ============================================================
+    teams_in_data = sorted(df['team'].unique())
+    if len(teams_in_data) > 1:
+        st.header("🏅 Ranking de Equipos")
+
+        team_stats = calculate_team_stats(df)
+        best_pos_team  = team_stats.loc[team_stats['% Positivo'].idxmax(), 'Equipo']
+        worst_neg_team = team_stats.loc[team_stats['% Negativo'].idxmax(), 'Equipo']
+
+        def _highlight_teams(row):
+            if row['Equipo'] == best_pos_team:
+                return ['background-color: #e8f5e9; color: #1b5e20'] * len(row)
+            if row['Equipo'] == worst_neg_team:
+                return ['background-color: #ffebee; color: #b71c1c'] * len(row)
+            return [''] * len(row)
+
+        styled = (
+            team_stats.style
+            .apply(_highlight_teams, axis=1)
+            .format({'% Positivo': '{:.1f}%', '% Negativo': '{:.1f}%', '% Neutro': '{:.1f}%'})
+        )
+        st.dataframe(styled, use_container_width=True, hide_index=True)
+        st.markdown("---")
+
+    # ============================================================
+    # SECCIÓN 3: COMPARATIVA GENERAL
     # ============================================================
     st.header("📊 Comparativa General")
     
@@ -254,10 +331,11 @@ def main():
     st.markdown("---")
     
     # ============================================================
-    # SECCIÓN 3: ANÁLISIS INDIVIDUAL
+    # SECCIÓN 4: ANÁLISIS INDIVIDUAL
     # ============================================================
     st.header("🔍 Análisis Individual")
     
+    # Player selector is scoped to the teams currently selected above
     selected_player = st.selectbox(
         "Selecciona un jugador",
         sorted(df['player'].unique())
@@ -301,6 +379,17 @@ def main():
                     st.markdown(f"[🔗 Ver artículo]({article['url']})")
                 
                 st.markdown("---")
+
+    # ============================================================
+    # SECCIÓN FINAL: PIE CHARTS POR EQUIPO
+    # ============================================================
+    st.markdown("---")
+    st.header("🥧 Distribución de Sentimiento por Equipo")
+
+    pie_cols = st.columns(min(len(teams_in_data), 3))
+    for i, team in enumerate(teams_in_data):
+        with pie_cols[i % len(pie_cols)]:
+            st.plotly_chart(plot_team_pie(df, team), use_container_width=True)
 
 
 if __name__ == "__main__":

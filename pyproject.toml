@@ -8,6 +8,7 @@ dependencies = [
     "feedparser>=6.0.12",
     "pandas>=2.3.3",
     "plotly>=6.6.0",
+    "psycopg2-binary>=2.9.11",
     "pydantic>=2.12.5",
     "sqlalchemy>=2.0.48",
     "streamlit>=1.55.0",
