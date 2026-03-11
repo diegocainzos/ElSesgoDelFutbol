@@ -3,6 +3,7 @@ Dashboard de Análisis de Sentimiento - Prensa Deportiva
 """
 
 import sys
+import json
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -18,12 +19,32 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "data_pipeline"))
 import db
 
 
+# --- Configuración de Traducciones ---
+@st.cache_data
+def load_translations(lang):
+    path = Path(__file__).parent / f"locales/{lang}.json"
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def t(key, **kwargs):
+    text = st.session_state.translations.get(key, key)
+    if kwargs:
+        return text.format(**kwargs)
+    return text
+
 # Configuración de la página
 st.set_page_config(
     page_title="El Sesgo del Fútbol",
     page_icon="⚽",
     layout="wide",
 )
+
+# Inicializar idioma en session_state
+if "lang" not in st.session_state:
+    st.session_state.lang = "es"
+
+if "translations" not in st.session_state:
+    st.session_state.translations = load_translations(st.session_state.lang)
 
 
 # Mapeo de sentimiento a score numérico para ranking
@@ -97,8 +118,8 @@ def load_articles(start_date=None, end_date=None):
 
             return pd.DataFrame(data)
     except Exception as e:
-        st.error(f"Error al cargar artículos de la base de datos: {e}")
-        st.info("Intenta recargar la página. Si el problema persiste, verifica que no haya otros procesos usando la DB.")
+        st.error(t("Error al cargar artículos de la base de datos: {e}", e=e))
+        st.info(t("Intenta recargar la página. Si el problema persiste, verifica que no haya otros procesos usando la DB."))
         return pd.DataFrame()
 
 
@@ -125,8 +146,8 @@ def plot_ranking(player_stats):
         y='player',
         x='numeric_score',
         orientation='h',
-        title='Ranking de Jugadores por Sentimiento',
-        labels={'numeric_score': 'Score de Sentimiento', 'player': 'Jugador'},
+        title=t('Ranking de Jugadores por Sentimiento'),
+        labels={'numeric_score': t('Score de Sentimiento'), 'player': t('Jugador')},
         color='numeric_score',
         color_continuous_scale=['#d32f2f', '#ffa500', '#00a651'],
         text='numeric_score'
@@ -167,13 +188,13 @@ def plot_sentiment_distribution(df):
         text=pivot.values,
         texttemplate='%{text:.0f}%',
         textfont={"size": 10},
-        hovertemplate='Jugador: %{y}<br>Label: %{x}<br>Porcentaje: %{z:.1f}%<extra></extra>'
+        hovertemplate=t('Jugador: %{y}<br>Label: %{x}<br>Porcentaje: %{z:.1f}%<extra></extra>')
     ))
     
     fig.update_layout(
-        title='Distribución de Sentimiento por Jugador (%)',
-        xaxis_title='Sentimiento',
-        yaxis_title='Jugador',
+        title=t('Distribución de Sentimiento por Jugador (%)'),
+        xaxis_title=t('Sentimiento'),
+        yaxis_title=t('Jugador'),
         height=600
     )
     
@@ -191,11 +212,11 @@ def plot_player_pie(df, player):
         values=sentiment_counts.values,
         marker=dict(colors=[SENTIMENT_COLORS.get(label, '#cccccc') for label in sentiment_counts.index]),
         textinfo='label+percent',
-        hovertemplate='%{label}: %{value} artículos<br>%{percent}<extra></extra>'
+        hovertemplate=t('%{label}: %{value} artículos<br>%{percent}<extra></extra>')
     )])
     
     fig.update_layout(
-        title=f'Distribución de Sentimiento - {player}',
+        title=t('Distribución de Sentimiento - {player}', player=player),
         height=400
     )
     
@@ -260,11 +281,11 @@ def plot_coverage_ranking(team_rankings: pd.DataFrame) -> go.Figure:
         marker_color='#2196f3',
         text=sorted_df['total_articles'],
         textposition='outside',
-        hovertemplate='%{y}<br>Artículos: %{x}<extra></extra>',
+        hovertemplate=t('%{y}<br>Artículos: %{x}<extra></extra>'),
     ))
     fig.update_layout(
-        title='📰 Volumen de Cobertura',
-        xaxis_title='Nº de artículos',
+        title=t('📰 Volumen de Cobertura'),
+        xaxis_title=t('Nº de artículos'),
         yaxis_title='',
         height=max(320, len(sorted_df) * 30),
         margin=dict(l=10, r=70, t=55, b=20),
@@ -288,12 +309,12 @@ def plot_positivity_ranking(team_rankings: pd.DataFrame) -> go.Figure:
         marker_color=colors,
         text=sorted_df['positivity_index'].apply(lambda v: f'{v:+.1f}%'),
         textposition='outside',
-        hovertemplate='%{y}<br>Índice: %{x:+.1f}%<extra></extra>',
+        hovertemplate=t('%{y}<br>Índice: %{x:+.1f}%<extra></extra>'),
     ))
     fig.add_vline(x=0, line_dash='dot', line_color='gray', opacity=0.5)
     fig.update_layout(
-        title='💚 Índice de Positividad',
-        xaxis_title='(% artículos POS − % artículos NEG)',
+        title=t('💚 Índice de Positividad'),
+        xaxis_title=t('(% artículos POS − % artículos NEG)'),
         yaxis_title='',
         height=max(320, len(sorted_df) * 30),
         margin=dict(l=10, r=70, t=55, b=20),
@@ -312,12 +333,12 @@ def plot_team_pie(df: pd.DataFrame, team: str):
         counts,
         names='label',
         values='count',
-        title=f'Distribución de sentimiento — {team}',
+        title=t('Distribución de sentimiento — {team}', team=team),
         color='label',
         color_discrete_map=SENTIMENT_COLORS,
     )
     fig.update_traces(textinfo='label+percent',
-                      hovertemplate='%{label}: %{value} artículos<br>%{percent}<extra></extra>')
+                      hovertemplate=t('%{label}: %{value} artículos<br>%{percent}<extra></extra>'))
     fig.update_layout(height=400)
     return fig
 
@@ -339,20 +360,20 @@ def plot_sentiment_evolution(df: pd.DataFrame, player: str):
 
     fig = px.line(
         weekly, x='semana', y='score',
-        title=f'Evolución del sentimiento semanal — {player}',
+        title=t('Evolución del sentimiento semanal — {player}', player=player),
         markers=True,
         custom_data=['articulos'],
     )
     fig.update_traces(
         line=dict(width=2.5),
         marker=dict(size=8),
-        hovertemplate='Semana: %{x|%d %b %Y}<br>Score: %{y:.2f}<br>Artículos: %{customdata[0]}<extra></extra>',
+        hovertemplate=t('Semana: %{x|%d %b %Y}<br>Score: %{y:.2f}<br>Artículos: %{customdata[0]}<extra></extra>'),
     )
     # Línea de neutralidad
     fig.add_hline(y=0, line_dash='dot', line_color='gray', opacity=0.4,
-                  annotation_text='Neutral', annotation_position='right')
+                  annotation_text=t('Neutral'), annotation_position='right')
     fig.update_layout(
-        yaxis=dict(range=[-1.2, 1.2], title='Score  (1 = positivo · -1 = negativo)',
+        yaxis=dict(range=[-1.2, 1.2], title=t('Score  (1 = positivo · -1 = negativo)'),
                    tickvals=[-1, 0, 1], ticktext=['NEG', 'NEU', 'POS']),
         xaxis_title='',
         height=320,
@@ -376,7 +397,7 @@ def plot_player_vs_team(df: pd.DataFrame, player: str):
 
     fig = go.Figure(go.Bar(
         x=[team_score, player_score],
-        y=[f'Media {team}', player],
+        y=[t('Media {team}', team=team), player],
         orientation='h',
         marker_color=['rgba(128,128,128,0.45)',
                       SENTIMENT_COLORS['POS'] if player_score >= 0 else SENTIMENT_COLORS['NEG']],
@@ -384,7 +405,7 @@ def plot_player_vs_team(df: pd.DataFrame, player: str):
         textposition='outside',
     ))
     fig.update_layout(
-        title=f'{player} vs. media del equipo',
+        title=t('{player} vs. media del equipo', player=player),
         xaxis=dict(range=[-1.2, 1.2], showticklabels=False, zeroline=True,
                    zerolinecolor='gray', zerolinewidth=1),
         height=170,
@@ -418,21 +439,16 @@ def plot_player_comparison(df: pd.DataFrame, player1: str, player2: str) -> go.F
             line=dict(width=2.5, color=palette[i]),
             marker=dict(size=7),
             customdata=weekly['articulos'],
-            hovertemplate=(
-                f'<b>{player}</b><br>'
-                'Semana: %{x|%d %b %Y}<br>'
-                'Score: %{y:.2f}<br>'
-                'Artículos: %{customdata}<extra></extra>'
-            ),
+            hovertemplate=t('<b>{player}</b><br>Semana: %{x|%d %b %Y}<br>Score: %{y:.2f}<br>Artículos: %{customdata}<extra></extra>', player=player),
         ))
 
     fig.add_hline(y=0, line_dash='dot', line_color='gray', opacity=0.4,
-                  annotation_text='Neutral', annotation_position='right')
+                  annotation_text=t('Neutral'), annotation_position='right')
     fig.add_hrect(y0=0,    y1=1.2,  fillcolor='#00a651', opacity=0.04, line_width=0)
     fig.add_hrect(y0=-1.2, y1=0,    fillcolor='#d32f2f', opacity=0.04, line_width=0)
     fig.update_layout(
-        title=f'{player1} vs {player2} — Evolución del sentimiento',
-        yaxis=dict(range=[-1.2, 1.2], title='Score',
+        title=t('{player1} vs {player2} — Evolución del sentimiento', player1=player1, player2=player2),
+        yaxis=dict(range=[-1.2, 1.2], title=t('Score'),
                    tickvals=[-1, 0, 1], ticktext=['NEG', 'NEU', 'POS']),
         xaxis_title='',
         height=380,
@@ -478,7 +494,7 @@ def detect_anomalies(df: pd.DataFrame, player: str,
 
     anomalies = weekly[weekly['z_score'].abs() >= threshold].copy()
     anomalies['direction'] = anomalies['z_score'].apply(
-        lambda z: 'positiva' if z > 0 else 'negativa'
+        lambda z: t('positiva') if z > 0 else t('negativa')
     )
     return anomalies[['semana', 'score', 'articulos', 'z_score', 'direction']].dropna()
 
@@ -500,18 +516,18 @@ def plot_anomaly_timeline(df: pd.DataFrame, player: str,
     # Línea principal
     fig.add_trace(go.Scatter(
         x=weekly['semana'], y=weekly['score'],
-        mode='lines+markers', name='Score semanal',
+        mode='lines+markers', name=t('Score semanal'),
         line=dict(width=2.5, color='#2196f3'),
         marker=dict(size=6),
         customdata=weekly['articulos'],
-        hovertemplate='Semana: %{x|%d %b %Y}<br>Score: %{y:.2f}<br>Artículos: %{customdata}<extra></extra>',
+        hovertemplate=t('Semana: %{x|%d %b %Y}<br>Score: %{y:.2f}<br>Artículos: %{customdata}<extra></extra>'),
     ))
 
     # Marcadores de anomalías
     if not anomalies.empty:
         for z_sign, color, symbol, label in [
-            (1,  SENTIMENT_COLORS['POS'], 'triangle-up',   '🟢 Pico positivo'),
-            (-1, SENTIMENT_COLORS['NEG'], 'triangle-down',  '🔴 Pico negativo'),
+            (1,  SENTIMENT_COLORS['POS'], 'triangle-up',   t('🟢 Pico positivo')),
+            (-1, SENTIMENT_COLORS['NEG'], 'triangle-down',  t('🔴 Pico negativo')),
         ]:
             subset = anomalies[anomalies['z_score'] * z_sign > 0]
             if not subset.empty:
@@ -521,22 +537,16 @@ def plot_anomaly_timeline(df: pd.DataFrame, player: str,
                     marker=dict(size=15, color=color, symbol=symbol,
                                 line=dict(width=2, color='white')),
                     customdata=subset[['z_score', 'articulos']].values,
-                    hovertemplate=(
-                        '⚠️ <b>Anomalía</b><br>'
-                        'Semana: %{x|%d %b %Y}<br>'
-                        'Score: %{y:.2f}<br>'
-                        'Z-score: %{customdata[0]:.2f}<br>'
-                        'Artículos: %{customdata[1]}<extra></extra>'
-                    ),
+                    hovertemplate=t('⚠️ <b>Anomalía</b><br>Semana: %{x|%d %b %Y}<br>Score: %{y:.2f}<br>Z-score: %{customdata[0]:.2f}<br>Artículos: %{customdata[1]}<extra></extra>'),
                 ))
 
     fig.add_hline(y=0, line_dash='dot', line_color='gray', opacity=0.4,
-                  annotation_text='Neutral', annotation_position='right')
+                  annotation_text=t('Neutral'), annotation_position='right')
     fig.add_hrect(y0=0,    y1=1.2,  fillcolor='#00a651', opacity=0.04, line_width=0)
     fig.add_hrect(y0=-1.2, y1=0,    fillcolor='#d32f2f', opacity=0.04, line_width=0)
     fig.update_layout(
-        title=f'Evolución del sentimiento — {player}',
-        yaxis=dict(range=[-1.2, 1.2], title='Score',
+        title=t('Evolución del sentimiento — {player}', player=player),
+        yaxis=dict(range=[-1.2, 1.2], title=t('Score'),
                    tickvals=[-1, 0, 1], ticktext=['NEG', 'NEU', 'POS']),
         xaxis_title='',
         height=340,
@@ -615,15 +625,28 @@ def main():
     # SIDEBAR — branding + filtros
     # ============================================================
     with st.sidebar:
-        st.markdown("""
-<div style="text-align:center; padding:1.2rem 0 1rem 0;">
+        # Selector de idioma
+        cols_lang = st.columns([1, 1])
+        with cols_lang[0]:
+            if st.button("🇪🇸 Español"):
+                st.session_state.lang = "es"
+                st.session_state.translations = load_translations("es")
+                st.rerun()
+        with cols_lang[1]:
+            if st.button("🇬🇧 English"):
+                st.session_state.lang = "en"
+                st.session_state.translations = load_translations("en")
+                st.rerun()
+
+        st.markdown(f"""
+<div style="text-align:center; padding:0.2rem 0 1rem 0;">
   <div style="font-size:3rem; line-height:1;">⚽</div>
   <div class="sesgo-sidebar-brand" style="margin-top:0.5rem;">
-    El Sesgo<br><span class="sesgo-accent">del Fútbol</span>
+    {t('El Sesgo<br><span class="sesgo-accent">del Fútbol</span>')}
   </div>
   <div style="font-size:0.68rem; opacity:0.45; margin-top:0.5rem;
               letter-spacing:0.12em; text-transform:uppercase;">
-    Análisis de sentimiento
+    {t('Análisis de sentimiento')}
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -635,7 +658,7 @@ def main():
                 f'<div style="text-align:center; padding:4px 0;">'
                 f'<img src="{LALIGA_LOGO_URL}" style="height:36px; object-fit:contain;" '
                 f'title="LaLiga" onerror="this.style.display=\'none\'">'
-                f'<div style="font-size:0.6rem; opacity:0.4; margin-top:2px;">DATOS</div>'
+                f'<div style="font-size:0.6rem; opacity:0.4; margin-top:2px;">{t("DATOS")}</div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -644,47 +667,46 @@ def main():
                 f'<div style="text-align:center; padding:4px 0;">'
                 f'<img src="{MARCA_LOGO_URL}" style="height:36px; object-fit:contain;" '
                 f'title="Marca" onerror="this.style.display=\'none\'">'
-                f'<div style="font-size:0.6rem; opacity:0.4; margin-top:2px;">FUENTE</div>'
+                f'<div style="font-size:0.6rem; opacity:0.4; margin-top:2px;">{t("FUENTE")}</div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
         st.divider()
 
         date_filter = st.selectbox(
-            "📅 Periodo de análisis",
-            ["Todo el tiempo", "Últimos 7 días", "Últimos 30 días", "Custom"],
+            t("📅 Periodo de análisis"),
+            [t("Todo el tiempo"), t("Últimos 7 días"), t("Últimos 30 días"), t("Custom")],
             index=0,
         )
         start_date = None
         end_date = None
-        if date_filter == "Últimos 7 días":
+        if date_filter == t("Últimos 7 días"):
             start_date = datetime.now() - timedelta(days=7)
-        elif date_filter == "Últimos 30 días":
+        elif date_filter == t("Últimos 30 días"):
             start_date = datetime.now() - timedelta(days=30)
-        elif date_filter == "Custom":
-            start_date = st.date_input("Desde", value=datetime.now() - timedelta(days=30))
-            end_date   = st.date_input("Hasta", value=datetime.now())
+        elif date_filter == t("Custom"):
+            start_date = st.date_input(t("Desde"), value=datetime.now() - timedelta(days=30))
+            end_date   = st.date_input(t("Hasta"), value=datetime.now())
 
     # ============================================================
     # HERO
     # ============================================================
     stats = load_hero_stats()
 
-    st.markdown("""
+    st.markdown(f"""
 <div style="text-align:center; padding:2.5rem 1rem 1rem 1rem;">
   <h1 class="sesgo-title">
-    El Sesgo <span class="sesgo-accent">del Fútbol</span>
+    {t('El Sesgo <span class="sesgo-accent">del Fútbol</span>')}
   </h1>
   <p style="font-size:1.15rem; opacity:0.65; max-width:620px; margin:0.8rem auto 1.5rem auto;
             letter-spacing:0.01em;">
-    La prensa tiene opinión. <strong>Los datos la revelan.</strong><br>
-    Scraping diario de Marca.com · IA de análisis de sentimiento · La Liga completa
+    {t('La prensa tiene opinión. <strong>Los datos la revelan.</strong><br>Scraping diario de Marca.com · IA de análisis de sentimiento · La Liga completa')}
   </p>
 </div>
 """, unsafe_allow_html=True)
 
     # Pipeline visual
-    st.markdown("""
+    st.markdown(f"""
 <div style="display:flex; justify-content:center; align-items:center;
             gap:0.6rem; padding:1.5rem 1rem; background:rgba(128,128,128,0.08);
             border-radius:14px; margin:0 0 1.5rem 0; flex-wrap:wrap;">
@@ -692,8 +714,8 @@ def main():
   <div style="text-align:center; padding:1rem 1.4rem; background:rgba(128,128,128,0.1);
               border-radius:10px; min-width:110px;">
     <div style="font-size:2rem;">📰</div>
-    <div style="font-weight:700; font-size:0.95rem; margin-top:0.4rem;">Scraping</div>
-    <div style="opacity:0.55; font-size:0.78rem;">Marca.com RSS</div>
+    <div style="font-weight:700; font-size:0.95rem; margin-top:0.4rem;">{t('Scraping')}</div>
+    <div style="opacity:0.55; font-size:0.78rem;">{t('Marca.com RSS')}</div>
   </div>
 
   <div style="font-size:1.6rem; opacity:0.35; font-weight:300;">→</div>
@@ -701,8 +723,8 @@ def main():
   <div style="text-align:center; padding:1rem 1.4rem; background:rgba(128,128,128,0.1);
               border-radius:10px; min-width:110px;">
     <div style="font-size:2rem;">🤖</div>
-    <div style="font-weight:700; font-size:0.95rem; margin-top:0.4rem;">IA Sentiment</div>
-    <div style="opacity:0.55; font-size:0.78rem;">RoBERTuito NLP</div>
+    <div style="font-weight:700; font-size:0.95rem; margin-top:0.4rem;">{t('IA Sentiment')}</div>
+    <div style="opacity:0.55; font-size:0.78rem;">{t('RoBERTuito NLP')}</div>
   </div>
 
   <div style="font-size:1.6rem; opacity:0.35; font-weight:300;">→</div>
@@ -710,8 +732,8 @@ def main():
   <div style="text-align:center; padding:1rem 1.4rem; background:rgba(128,128,128,0.1);
               border-radius:10px; min-width:110px;">
     <div style="font-size:2rem;">🗄️</div>
-    <div style="font-weight:700; font-size:0.95rem; margin-top:0.4rem;">Base de datos</div>
-    <div style="opacity:0.55; font-size:0.78rem;">PostgreSQL</div>
+    <div style="font-weight:700; font-size:0.95rem; margin-top:0.4rem;">{t('Base de datos')}</div>
+    <div style="opacity:0.55; font-size:0.78rem;">{t('PostgreSQL')}</div>
   </div>
 
   <div style="font-size:1.6rem; opacity:0.35; font-weight:300;">→</div>
@@ -719,19 +741,24 @@ def main():
   <div style="text-align:center; padding:1rem 1.4rem; background:rgba(128,128,128,0.1);
               border-radius:10px; min-width:110px;">
     <div style="font-size:2rem;">📊</div>
-    <div style="font-weight:700; font-size:0.95rem; margin-top:0.4rem;">Dashboard</div>
-    <div style="opacity:0.55; font-size:0.78rem;">Streamlit</div>
+    <div style="font-weight:700; font-size:0.95rem; margin-top:0.4rem;">{t('Dashboard')}</div>
+    <div style="opacity:0.55; font-size:0.78rem;">{t('Streamlit')}</div>
   </div>
 
 </div>
 """, unsafe_allow_html=True)
 
     # Métricas globales
+    def format_num(n):
+        if st.session_state.lang == "es":
+            return f"{n:,}".replace(",", ".")
+        return f"{n:,}"
+
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("📰 Artículos analizados", f"{stats['articulos']:,}".replace(",", "."))
-    c2.metric("🏟️ Equipos de La Liga",   stats['equipos'])
-    c3.metric("👤 Jugadores monitorizados", stats['jugadores'])
-    c4.metric("🤖 Articulos clasificados con IA",  f"{stats['clasificados']:,}".replace(",", "."))
+    c1.metric(t("📰 Artículos analizados"), format_num(stats['articulos']))
+    c2.metric(t("🏟️ Equipos de La Liga"),   stats['equipos'])
+    c3.metric(t("👤 Jugadores monitorizados"), stats['jugadores'])
+    c4.metric(t("🤖 Articulos clasificados con IA"),  format_num(stats['clasificados']))
 
     # Badges de stack y despliegue
     st.markdown("""
@@ -752,7 +779,7 @@ def main():
     df = load_articles(start_date, end_date)
 
     if df.empty:
-        st.error("No hay artículos en el periodo seleccionado.")
+        st.error(t("No hay artículos en el periodo seleccionado."))
         return
 
     # Filtro de equipos en la sidebar (necesita df ya cargado)
@@ -761,7 +788,7 @@ def main():
         available_teams = sorted(df['team'].unique())
         if len(available_teams) > 1:
             selected_teams = st.multiselect(
-                "🏟️ Equipos",
+                t("🏟️ Equipos"),
                 available_teams,
                 default=None,
             )
@@ -769,35 +796,35 @@ def main():
                 df = df[df['team'].isin(selected_teams)]
 
         st.divider()
-        st.markdown("""
+        st.markdown(f"""
 <div style="font-size:0.72rem; opacity:0.4; text-align:center; padding:0.5rem 0;">
-  Hecho por <strong>Diego Cainzos</strong><br>
+  {t('Hecho por <strong>Diego Cainzos</strong><br>')}
   <a href="https://diegocainzos.cv" target="_blank"
      style="color:inherit;">diegocainzos.cv</a>
 </div>
 """, unsafe_allow_html=True)
 
     if df.empty:
-        st.warning("No hay artículos para los equipos seleccionados.")
+        st.warning(t("No hay artículos para los equipos seleccionados."))
         return
     
     # Métricas principales
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("Total Artículos", len(df))
+        st.metric(t("Total Artículos"), len(df))
     
     with col2:
         positive_pct = (df['sentiment_label'] == 'POS').sum() / len(df) * 100
-        st.metric("% Positivo", f"{positive_pct:.1f}%")
+        st.metric(t("% Positivo"), f"{positive_pct:.1f}%")
     
     with col3:
         negative_pct = (df['sentiment_label'] == 'NEG').sum() / len(df) * 100
-        st.metric("% Negativo", f"{negative_pct:.1f}%")
+        st.metric(t("% Negativo"), f"{negative_pct:.1f}%")
     
     with col4:
         neutral_pct = (df['sentiment_label'] == 'NEU').sum() / len(df) * 100
-        st.metric("% Neutral", f"{neutral_pct:.1f}%")
+        st.metric(t("% Neutral"), f"{neutral_pct:.1f}%")
     
     st.markdown("---")
 
@@ -806,7 +833,7 @@ def main():
     # ============================================================
     teams_in_data = sorted(df['team'].unique())
     if len(teams_in_data) > 1:
-        st.header("🏅 Ranking Comparativo de Equipos")
+        st.header(t("🏅 Ranking Comparativo de Equipos"))
 
         team_rankings = calculate_team_rankings(df)
 
@@ -819,44 +846,44 @@ def main():
 
         # ── Filtro de fecha en el contexto del ranking ─────────────
         st.caption(
-            "💡 Ajusta el **Periodo de análisis** en la barra lateral para que el ranking sea dinámico."
+            t("💡 Ajusta el **Periodo de análisis** en la barra lateral para que el ranking sea dinámico.")
         )
 
         # ── Tabla detallada con logos ──────────────────────────────
-        st.subheader("📋 Tabla Detallada")
+        st.subheader(t("📋 Tabla Detallada"))
 
         display_df = (
             team_rankings[['logo', 'team', 'total_articles', 'positivity_index', 'mean_score',
                             'pos_count', 'neu_count', 'neg_count']]
             .rename(columns={
-                'logo':             'Escudo',
-                'team':             'Equipo',
-                'total_articles':   'Artículos',
-                'positivity_index': 'Positividad (%)',
-                'mean_score':       'Score Medio',
+                'logo':             t('Escudo'),
+                'team':             t('Equipo'),
+                'total_articles':   t('Artículos'),
+                'positivity_index': t('Positividad (%)'),
+                'mean_score':       t('Score Medio'),
                 'pos_count':        'POS',
                 'neu_count':        'NEU',
                 'neg_count':        'NEG',
             })
-            .sort_values('Positividad (%)', ascending=False)
+            .sort_values(t('Positividad (%)'), ascending=False)
             .reset_index(drop=True)
         )
 
         st.dataframe(
             display_df,
             column_config={
-                "Escudo": st.column_config.ImageColumn(
+                t("Escudo"): st.column_config.ImageColumn(
                     "", width="small",
                     help="Logo del club (ESPN CDN)",
                 ),
-                "Equipo":          st.column_config.TextColumn("Equipo"),
-                "Artículos":       st.column_config.NumberColumn("Artículos", format="%d"),
-                "Positividad (%)": st.column_config.NumberColumn("Positividad (%)", format="%.1f"),
-                "Score Medio":     st.column_config.NumberColumn("Score", format="%.3f",
+                t("Equipo"):          st.column_config.TextColumn(t("Equipo")),
+                t("Artículos"):       st.column_config.NumberColumn(t("Artículos"), format="%d"),
+                t("Positividad (%)"): st.column_config.NumberColumn(t("Positividad (%)"), format="%.1f"),
+                t("Score Medio"):     st.column_config.NumberColumn(t("Score Medio"), format="%.3f",
                                    help="Media de POS→1, NEU→0, NEG→−1"),
-                "POS": st.column_config.NumberColumn("✅ POS", format="%d"),
-                "NEU": st.column_config.NumberColumn("⬜ NEU", format="%d"),
-                "NEG": st.column_config.NumberColumn("❌ NEG", format="%d"),
+                "POS": st.column_config.NumberColumn(t("✅ POS"), format="%d"),
+                "NEU": st.column_config.NumberColumn(t("⬜ NEU"), format="%d"),
+                "NEG": st.column_config.NumberColumn(t("❌ NEG"), format="%d"),
             },
             hide_index=True,
             use_container_width=True,
@@ -866,7 +893,7 @@ def main():
     # ============================================================
     # SECCIÓN 3: COMPARATIVA GENERAL
     # ============================================================
-    st.header("📊 Comparativa General")
+    st.header(t("📊 Comparativa General"))
     
     player_stats = calculate_player_scores(df)
     
@@ -874,16 +901,16 @@ def main():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("🏆 Mejor Tratados")
+        st.subheader(t("🏆 Mejor Tratados"))
         top3 = player_stats.head(3)
         for idx, row in top3.iterrows():
-            st.success(f"**{row['player']}**: {row['numeric_score']:.2f} ({int(row['total_articles'])} artículos)")
+            st.success(t("**{row['player']}**: {row['numeric_score']:.2f} ({int(row['total_articles'])} artículos)", row=row))
     
     with col2:
-        st.subheader("📉 Peor Tratados")
+        st.subheader(t("📉 Peor Tratados"))
         bottom3 = player_stats.tail(3).iloc[::-1]
         for idx, row in bottom3.iterrows():
-            st.error(f"**{row['player']}**: {row['numeric_score']:.2f} ({int(row['total_articles'])} artículos)")
+            st.error(t("**{row['player']}**: {row['numeric_score']:.2f} ({int(row['total_articles'])} artículos)", row=row))
     
     # Gráfico de ranking
     st.plotly_chart(plot_ranking(player_stats), width="stretch")
@@ -896,24 +923,24 @@ def main():
     # ============================================================
     # SECCIÓN 3b: COMPARATIVA JUGADOR VS JUGADOR
     # ============================================================
-    st.header("🆚 Comparativa de Jugadores")
+    st.header(t("🆚 Comparativa de Jugadores"))
 
     all_players = sorted(df['player'].unique())
     cmp_col1, cmp_col2 = st.columns(2)
     with cmp_col1:
         cmp_player1 = st.selectbox(
-            "Jugador A", all_players,
+            t("Jugador A"), all_players,
             index=0, key="cmp_p1",
         )
     with cmp_col2:
         default_p2 = all_players[1] if len(all_players) > 1 else all_players[0]
         cmp_player2 = st.selectbox(
-            "Jugador B", all_players,
+            t("Jugador B"), all_players,
             index=all_players.index(default_p2), key="cmp_p2",
         )
 
     if cmp_player1 == cmp_player2:
-        st.info("Selecciona dos jugadores distintos para comparar.")
+        st.info(t("Selecciona dos jugadores distintos para comparar."))
     else:
         # Gráfico de evolución compartido
         st.plotly_chart(
@@ -941,31 +968,30 @@ def main():
                     unsafe_allow_html=True,
                 )
                 mc1, mc2, mc3 = st.columns(3)
-                mc1.metric("Score",    f"{score:.2f}")
-                mc2.metric("% POS",    f"{pos_pct:.0f}%")
-                mc3.metric("% NEG",    f"{neg_pct:.0f}%")
+                mc1.metric(t("Score"),    f"{score:.2f}")
+                mc2.metric(t("% POS"),    f"{pos_pct:.0f}%")
+                mc3.metric(t("% NEG"),    f"{neg_pct:.0f}%")
 
     st.markdown("---")
 
     # ============================================================
     # SECCIÓN 3c: ALERTAS EDITORIALES (anomalías globales)
     # ============================================================
-    st.header("🚨 Alertas Editoriales")
+    st.header(t("🚨 Alertas Editoriales"))
     st.caption(
-        "Semanas con cambios de tono estadísticamente inusuales para cada jugador "
-        "(z-score rolling ≥ 1.5 sobre ventana de 6 semanas)."
+        t("Semanas con cambios de tono estadísticamente inusuales para cada jugador (z-score rolling ≥ 1.5 sobre ventana de 6 semanas).")
     )
 
     top_anom = get_top_anomalies(df, n=10)
 
     if top_anom.empty:
-        st.info("No hay anomalías detectadas con los datos y filtros actuales.")
+        st.info(t("No hay anomalías detectadas con los datos y filtros actuales."))
     else:
         anom_display = top_anom.copy()
         anom_display['logo'] = anom_display['team'].map(TEAM_LOGOS)
-        anom_display['semana_str'] = anom_display['semana'].dt.strftime('Sem. %d %b %Y')
+        anom_display['semana_str'] = anom_display['semana'].dt.strftime(t('Sem. %d %b %Y'))
         anom_display['tipo'] = anom_display['direction'].map(
-            {'positiva': '🟢 Pico positivo', 'negativa': '🔴 Pico negativo'}
+            {t('positiva'): t('🟢 Pico positivo'), t('negativa'): t('🔴 Pico negativo')}
         )
         anom_display['z_abs'] = anom_display['z_score'].abs().round(2)
 
@@ -973,14 +999,14 @@ def main():
             anom_display[['logo', 'player', 'team', 'semana_str', 'tipo', 'score', 'z_abs', 'articulos']],
             column_config={
                 "logo":       st.column_config.ImageColumn("", width="small"),
-                "player":     st.column_config.TextColumn("Jugador"),
-                "team":       st.column_config.TextColumn("Equipo"),
-                "semana_str": st.column_config.TextColumn("Semana"),
-                "tipo":       st.column_config.TextColumn("Tipo"),
-                "score":      st.column_config.NumberColumn("Score", format="%.2f"),
-                "z_abs":      st.column_config.NumberColumn("Intensidad (z)", format="%.2f",
+                "player":     st.column_config.TextColumn(t("Jugador")),
+                "team":       st.column_config.TextColumn(t("Equipo")),
+                "semana_str": st.column_config.TextColumn(t("Semana")),
+                "tipo":       st.column_config.TextColumn(t("Tipo")),
+                "score":      st.column_config.NumberColumn(t("Score"), format="%.2f"),
+                "z_abs":      st.column_config.NumberColumn(t("Intensidad (z)"), format="%.2f",
                               help="Cuántas desviaciones estándar sobre la media reciente"),
-                "articulos":  st.column_config.NumberColumn("Arts.", format="%d"),
+                "articulos":  st.column_config.NumberColumn(t("Arts."), format="%d"),
             },
             hide_index=True,
             use_container_width=True,
@@ -991,11 +1017,11 @@ def main():
     # ============================================================
     # SECCIÓN 4: ANÁLISIS INDIVIDUAL
     # ============================================================
-    st.header("🔍 Análisis Individual")
+    st.header(t("🔍 Análisis Individual"))
 
     # Player selector is scoped to the teams currently selected above
     selected_player = st.selectbox(
-        "Selecciona un jugador",
+        t("Selecciona un jugador"),
         sorted(df['player'].unique())
     )
 
@@ -1007,9 +1033,9 @@ def main():
 
     # Fila de métricas
     m1, m2, m3 = st.columns(3)
-    m1.metric("Score del jugador",    f"{avg_score:.2f}")
-    m2.metric("Total artículos",       len(player_df))
-    m3.metric("vs. media del equipo",  f"{team_avg:.2f}", delta=f"{delta:+.2f}",
+    m1.metric(t("Score del jugador"),    f"{avg_score:.2f}")
+    m2.metric(t("Total artículos"),       len(player_df))
+    m3.metric(t("vs. media del equipo"),  f"{team_avg:.2f}", delta=f"{delta:+.2f}",
               delta_color="normal")
 
     # Evolución temporal con anomalías marcadas — ancho completo
@@ -1018,16 +1044,16 @@ def main():
     # Anomalías específicas del jugador seleccionado
     player_anomalies = detect_anomalies(df, selected_player)
     if not player_anomalies.empty:
-        with st.expander(f"⚠️ {len(player_anomalies)} semanas anómalas detectadas para {selected_player}", expanded=False):
+        with st.expander(t("⚠️ {len(player_anomalies)} semanas anómalas detectadas para {selected_player}", len_player_anomalies=len(player_anomalies), selected_player=selected_player), expanded=False):
             anom_fmt = player_anomalies.copy()
-            anom_fmt['semana'] = anom_fmt['semana'].dt.strftime('%d %b %Y')
+            anom_fmt['semana'] = anom_fmt['semana'].dt.strftime(t('%d %b %Y'))
             anom_fmt['tipo']   = anom_fmt['direction'].map(
-                {'positiva': '🟢 Pico positivo', 'negativa': '🔴 Pico negativo'}
+                {t('positiva'): t('🟢 Pico positivo'), t('negativa'): t('🔴 Pico negativo')}
             )
             st.dataframe(
                 anom_fmt[['semana', 'tipo', 'score', 'z_score', 'articulos']]
-                .rename(columns={'semana': 'Semana', 'tipo': 'Tipo',
-                                 'score': 'Score', 'z_score': 'Z-score', 'articulos': 'Arts.'}),
+                .rename(columns={'semana': t('Semana'), 'tipo': t('Tipo'),
+                                 'score': t('Score'), 'z_score': t('Z-score'), 'articulos': t('Arts.')}),
                 hide_index=True, use_container_width=True,
             )
 
@@ -1038,7 +1064,7 @@ def main():
         st.plotly_chart(plot_player_vs_team(df, selected_player), width="stretch")
 
     with col2:
-        st.subheader(f"📰 Artículos Recientes - {selected_player}")
+        st.subheader(t("📰 Artículos Recientes - {selected_player}", selected_player=selected_player))
 
         recent_articles = player_df.sort_values('published_at', ascending=False).head(10)
 
@@ -1060,7 +1086,7 @@ def main():
                     st.markdown(f"**{article['title']}**")
                     st.caption(f"📅 {article['published_at'].strftime('%d/%m/%Y %H:%M')} | "
                              f"Score: {article['sentiment_score']:.2f}")
-                    st.markdown(f"[🔗 Ver artículo]({article['url']})")
+                    st.markdown(t("[🔗 Ver artículo]({article['url']})", article=article))
 
                 st.markdown("---")
 
@@ -1068,7 +1094,7 @@ def main():
     # SECCIÓN FINAL: PIE CHARTS POR EQUIPO
     # ============================================================
     st.markdown("---")
-    st.header("🥧 Distribución de Sentimiento por Equipo")
+    st.header(t("🥧 Distribución de Sentimiento por Equipo"))
 
     pie_cols = st.columns(min(len(teams_in_data), 3))
     for i, team in enumerate(teams_in_data):
@@ -1079,74 +1105,14 @@ def main():
     # SOBRE ESTE PROYECTO
     # ============================================================
     st.markdown("---")
-    with st.expander("📖 Sobre este proyecto", expanded=False):
+    with st.expander(t("📖 Sobre este proyecto"), expanded=False):
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown("""
-### ¿Qué hace esta herramienta?
-
-Monitoriza en tiempo real el tono con el que la prensa deportiva española
-cubre a los jugadores de la Liga española.
-
-Cada vez que se actualiza, el sistema:
-1. **Extrae** los artículos más recientes de las RSS de Marca.com para cada jugador
-2. **Clasifica** automáticamente cada artículo como Positivo, Negativo o Neutral
-   usando un modelo de inteligencia artificial entrenado en español
-3. **Almacena** los resultados en una base de datos para su análisis histórico
-4. **Visualiza** las tendencias en este dashboard interactivo
-
-El resultado es un termómetro del sentimiento mediático: ¿a quién trata bien
-la prensa? ¿Quién está en el punto de mira?
-
----
-
-### 🛠️ Stack técnico
-
-| Capa | Tecnología |
-|---|---|
-| Extracción de datos | `feedparser` (RSS) |
-| Análisis de sentimiento | `pysentimiento/robertuito` (BERT en español) |
-| Base de datos | SQLite / PostgreSQL |
-| ORM | SQLAlchemy 2.0 |
-| Dashboard | Streamlit + Plotly |
-| Gestión de entornos | `uv` |
-""")
+            st.markdown(t("about.what_does_it_do"))
 
         with col2:
-            st.markdown("""
-### 💡 Lo que aprendí construyendo esto
-
-**Datos y pipelines**
-- Cómo construir un pipeline ETL completo desde cero: extracción, transformación y carga
-- Deduplicación de datos con SHA1 para evitar artículos repetidos
-- Procesamiento en batches para no saturar el modelo de NLP
-
-**Bases de datos**
-- Diseño de esquema relacional con claves foráneas
-- ORM con SQLAlchemy: modelos, relaciones, migraciones
-- La diferencia entre SQLite (local) y PostgreSQL (producción)
-- SQL puro vs ORM: cuándo usar cada uno
-
-**Machine Learning aplicado**
-- Uso de modelos preentrenados de HuggingFace sin necesidad de entrenar desde cero
-- Las limitaciones reales de los modelos: el sarcasmo, el contexto deportivo,
-  los titulares ambiguos
-
-**Ingeniería de software**
-- Separación de responsabilidades en capas independientes
-- Configuración externalizada (TOML) para escalar sin tocar código
-- Escritura de migraciones de base de datos idempotentes
-
----
-
-### 👨‍💻 Autor
-
-Proyecto personal de **Diego Cainzos** — construido como ejercicio práctico
-de ingeniería de datos y desarrollo de producto.
-
-[diegocainzos.cv](https://diegocainzos.cv)
-""")
+            st.markdown(t("about.what_i_learned"))
 
 
 if __name__ == "__main__":
