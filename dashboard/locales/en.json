@@ -79,7 +79,7 @@
   "📊 Comparativa General": "📊 General Comparison",
   "🏆 Mejor Tratados": "🏆 Best Treated",
   "📉 Peor Tratados": "📉 Worst Treated",
-  "**{row['player']}**: {row['numeric_score']:.2f} ({int(row['total_articles'])} artículos)": "**{row['player']}**: {row['numeric_score']:.2f} ({int(row['total_articles'])} articles)",
+  "**{player}**: {score:.2f} ({count} artículos)": "**{player}**: {score:.2f} ({count} articles)",
   "🆚 Comparativa de Jugadores": "🆚 Player Comparison",
   "Jugador A": "Player A",
   "Jugador B": "Player B",
@@ -99,13 +99,15 @@
   "Score del jugador": "Player Score",
   "Total artículos": "Total articles",
   "vs. media del equipo": "vs. team average",
-  "⚠️ {len(player_anomalies)} semanas anómalas detectadas para {selected_player}": "⚠️ {len(player_anomalies)} anomalous weeks detected for {selected_player}",
+  "⚠️ {len_player_anomalies} semanas anómalas detectadas para {selected_player}": "⚠️ {len_player_anomalies} anomalous weeks detected for {selected_player}",
   "%d %b %Y": "%d %b %Y",
   "Z-score": "Z-score",
   "📰 Artículos Recientes - {selected_player}": "📰 Recent Articles - {selected_player}",
-  "[🔗 Ver artículo]({article['url']})": "[🔗 View article]({article['url']})",
+  "[🔗 Ver artículo]({url})": "[🔗 View article]({url})",
   "🥧 Distribución de Sentimiento por Equipo": "🥧 Sentiment Distribution by Team",
   "📖 Sobre este proyecto": "📖 About this project",
   "about.what_does_it_do": "### What does this tool do?\n\nIt monitors in real-time the tone with which the Spanish sports press covers players in the Spanish league.\n\nEvery time it updates, the system:\n1. **Extracts** the most recent articles from Marca.com RSS for each player\n2. **Automatically classifies** each article as Positive, Negative or Neutral using an AI model trained in Spanish\n3. **Stores** the results in a database for historical analysis\n4. **Visualizes** the trends in this interactive dashboard\n\nThe result is a thermometer of media sentiment: who is treated well by the press? Who is in the spotlight?\n\n---\n\n### 🛠️ Technical Stack\n\n| Layer | Technology |\n|---|---|\n| Data extraction | `feedparser` (RSS) |\n| Sentiment analysis | `pysentimiento/robertuito` (BERT in Spanish) |\n| Database | SQLite / PostgreSQL |\n| ORM | SQLAlchemy 2.0 |\n| Dashboard | Streamlit + Plotly |\n| Environment management | `uv` |\n",
-  "about.what_i_learned": "### 💡 What I learned building this\n\n**Data and pipelines**\n- How to build a full ETL pipeline from scratch: extraction, transformation, and load\n- Data deduplication with SHA1 to avoid repeated articles\n- Batch processing to avoid overwhelming the NLP model\n\n**Databases**\n- Relational schema design with foreign keys\n- ORM with SQLAlchemy: models, relationships, migrations\n- The difference between SQLite (local) and PostgreSQL (production)\n- Pure SQL vs ORM: when to use each\n\n**Applied Machine Learning**\n- Using pre-trained HuggingFace models without needing to train from scratch\n- Real limitations of models: sarcasm, sports context, ambiguous headlines\n\n**Software Engineering**\n- Separation of concerns into independent layers\n- Externalized configuration (TOML) to scale without touching code\n- Writing idempotent database migrations\n\n---\n\n### 👨‍💻 Author\n\nPersonal project of **Diego Cainzos** — built as a practical exercise in data engineering and product development.\n\n[diegocainzos.cv](https://diegocainzos.cv)\n"
+  "about.what_i_learned": "### 💡 What I learned building this\n\n**Data and pipelines**\n- How to build a full ETL pipeline from scratch: extraction, transformation, and load\n- Data deduplication with SHA1 to avoid repeated articles\n- Batch processing to avoid overwhelming the NLP model\n\n**Databases**\n- Relational schema design with foreign keys\n- ORM with SQLAlchemy: models, relationships, migrations\n- The difference between SQLite (local) and PostgreSQL (production)\n- Pure SQL vs ORM: when to use each\n\n**Applied Machine Learning**\n- Using pre-trained HuggingFace models without needing to train from scratch\n- Real limitations of models: sarcasm, sports context, ambiguous headlines\n\n**Software Engineering**\n- Separation of concerns into independent layers\n- Externalized configuration (TOML) to scale without touching code\n- Writing idempotent database migrations\n\n---\n\n### 👨‍💻 Author\n\nPersonal project of **Diego Cainzos** — built as a practical exercise in data engineering and product development.\n\n[diegocainzos.cv](https://diegocainzos.cv)\n",
+  "El Sesgo<br><span class=\"sesgo-accent\">del Fútbol</span>": "Football<br><span class=\"sesgo-accent\">Bias</span>",
+  "Análisis de sentimiento": "Sentiment analysis"
 }

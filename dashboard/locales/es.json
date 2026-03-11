@@ -79,7 +79,7 @@
   "📊 Comparativa General": "📊 Comparativa General",
   "🏆 Mejor Tratados": "🏆 Mejor Tratados",
   "📉 Peor Tratados": "📉 Peor Tratados",
-  "**{row['player']}**: {row['numeric_score']:.2f} ({int(row['total_articles'])} artículos)": "**{row['player']}**: {row['numeric_score']:.2f} ({int(row['total_articles'])} artículos)",
+  "**{player}**: {score:.2f} ({count} artículos)": "**{player}**: {score:.2f} ({count} artículos)",
   "🆚 Comparativa de Jugadores": "🆚 Comparativa de Jugadores",
   "Jugador A": "Jugador A",
   "Jugador B": "Jugador B",
@@ -99,13 +99,15 @@
   "Score del jugador": "Score del jugador",
   "Total artículos": "Total artículos",
   "vs. media del equipo": "vs. media del equipo",
-  "⚠️ {len(player_anomalies)} semanas anómalas detectadas para {selected_player}": "⚠️ {len(player_anomalies)} semanas anómalas detectadas para {selected_player}",
+  "⚠️ {len_player_anomalies} semanas anómalas detectadas para {selected_player}": "⚠️ {len_player_anomalies} semanas anómalas detectadas para {selected_player}",
   "%d %b %Y": "%d %b %Y",
   "Z-score": "Z-score",
   "📰 Artículos Recientes - {selected_player}": "📰 Artículos Recientes - {selected_player}",
-  "[🔗 Ver artículo]({article['url']})": "[🔗 Ver artículo]({article['url']})",
+  "[🔗 Ver artículo]({url})": "[🔗 Ver artículo]({url})",
   "🥧 Distribución de Sentimiento por Equipo": "🥧 Distribución de Sentimiento por Equipo",
   "📖 Sobre este proyecto": "📖 Sobre este proyecto",
   "about.what_does_it_do": "### ¿Qué hace esta herramienta?\n\nMonitoriza en tiempo real el tono con el que la prensa deportiva española cubre a los jugadores de la Liga española.\n\nCada vez que se actualiza, el sistema:\n1. **Extrae** los artículos más recientes de las RSS de Marca.com para cada jugador\n2. **Clasifica** automáticamente cada artículo como Positivo, Negativo o Neutral usando un modelo de inteligencia artificial entrenado en español\n3. **Almacena** los resultados en una base de datos para su análisis histórico\n4. **Visualiza** las tendencias en este dashboard interactivo\n\nEl resultado es un termómetro del sentimiento mediático: ¿a quién trata bien la prensa? ¿Quién está en el punto de mira?\n\n---\n\n### 🛠️ Stack técnico\n\n| Capa | Tecnología |\n|---|---|\n| Extracción de datos | `feedparser` (RSS) |\n| Análisis de sentimiento | `pysentimiento/robertuito` (BERT en español) |\n| Base de datos | SQLite / PostgreSQL |\n| ORM | SQLAlchemy 2.0 |\n| Dashboard | Streamlit + Plotly |\n| Gestión de entornos | `uv` |\n",
-  "about.what_i_learned": "### 💡 Lo que aprendí construyendo esto\n\n**Datos y pipelines**\n- Cómo construir un pipeline ETL completo desde cero: extracción, transformación y carga\n- Deduplicación de datos con SHA1 para evitar artículos repetidos\n- Procesamiento en batches para no saturar el modelo de NLP\n\n**Bases de datos**\n- Diseño de esquema relacional con claves foráneas\n- ORM con SQLAlchemy: modelos, relaciones, migraciones\n- La diferencia entre SQLite (local) y PostgreSQL (producción)\n- SQL puro vs ORM: cuándo usar cada uno\n\n**Machine Learning aplicado**\n- Uso de modelos preentrenados de HuggingFace sin necesidad de entrenar desde cero\n- Las limitaciones reales de los modelos: el sarcasmo, el contexto deportivo, los titulares ambiguos\n\n**Ingeniería de software**\n- Separación de responsabilidades en capas independientes\n- Configuración externalizada (TOML) para escalar sin tocar código\n- Escritura de migraciones de base de datos elásticas e idempotentes\n\n---\n\n### 👨‍💻 Autor\n\nProyecto personal de **Diego Cainzos** — construido como ejercicio práctico de ingeniería de datos y desarrollo de producto.\n\n[diegocainzos.cv](https://diegocainzos.cv)\n"
+  "about.what_i_learned": "### 💡 Lo que aprendí construyendo esto\n\n**Datos y pipelines**\n- Cómo construir un pipeline ETL completo desde cero: extracción, transformación y carga\n- Deduplicación de datos con SHA1 para evitar artículos repetidos\n- Procesamiento en batches para no saturar el modelo de NLP\n\n**Bases de datos**\n- Diseño de esquema relacional con claves foráneas\n- ORM con SQLAlchemy: modelos, relaciones, migraciones\n- La diferencia entre SQLite (local) y PostgreSQL (producción)\n- SQL puro vs ORM: cuándo usar cada uno\n\n**Machine Learning aplicado**\n- Uso de modelos preentrenados de HuggingFace sin necesidad de entrenar desde cero\n- Las limitaciones reales de los modelos: el sarcasmo, el contexto deportivo, los titulares ambiguos\n\n**Ingeniería de software**\n- Separación de responsabilidades en capas independientes\n- Configuración externalizada (TOML) para escalar sin tocar código\n- Escritura de migraciones de base de datos elásticas e idempotentes\n\n---\n\n### 👨‍💻 Autor\n\nProyecto personal de **Diego Cainzos** — construido como ejercicio práctico de ingeniería de datos y desarrollo de producto.\n\n[diegocainzos.cv](https://diegocainzos.cv)\n",
+  "El Sesgo<br><span class=\"sesgo-accent\">del Fútbol</span>": "El Sesgo<br><span class=\"sesgo-accent\">del Fútbol</span>",
+  "Análisis de sentimiento": "Análisis de sentimiento"
 }

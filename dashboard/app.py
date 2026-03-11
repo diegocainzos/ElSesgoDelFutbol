@@ -29,7 +29,15 @@ def load_translations(lang):
 def t(key, **kwargs):
     text = st.session_state.translations.get(key, key)
     if kwargs:
-        return text.format(**kwargs)
+        # Protegemos las llaves de Plotly %{...} duplicándolas para que .format() las ignore
+        import re
+        # Buscamos patrones de Plotly %{...} y duplicamos las llaves: %{{...}}
+        protected_text = re.sub(r'%\{([^}]+)\}', r'%{{\1}}', text)
+        try:
+            return protected_text.format(**kwargs)
+        except (KeyError, ValueError, IndexError):
+            # Si falla la interpolación, devolvemos el texto original (o con las variables sin procesar)
+            return text
     return text
 
 # Configuración de la página
@@ -908,13 +916,19 @@ def main():
         st.subheader(t("🏆 Mejor Tratados"))
         top3 = player_stats.head(3)
         for idx, row in top3.iterrows():
-            st.success(t("**{row['player']}**: {row['numeric_score']:.2f} ({int(row['total_articles'])} artículos)", row=row))
+            st.success(t("**{player}**: {score:.2f} ({count} artículos)", 
+                         player=row['player'], 
+                         score=row['numeric_score'], 
+                         count=int(row['total_articles'])))
     
     with col2:
         st.subheader(t("📉 Peor Tratados"))
         bottom3 = player_stats.tail(3).iloc[::-1]
         for idx, row in bottom3.iterrows():
-            st.error(t("**{row['player']}**: {row['numeric_score']:.2f} ({int(row['total_articles'])} artículos)", row=row))
+            st.error(t("**{player}**: {score:.2f} ({count} artículos)", 
+                       player=row['player'], 
+                       score=row['numeric_score'], 
+                       count=int(row['total_articles'])))
     
     # Gráfico de ranking
     st.plotly_chart(plot_ranking(player_stats), width="stretch")
@@ -1048,7 +1062,9 @@ def main():
     # Anomalías específicas del jugador seleccionado
     player_anomalies = detect_anomalies(df, selected_player)
     if not player_anomalies.empty:
-        with st.expander(t("⚠️ {len(player_anomalies)} semanas anómalas detectadas para {selected_player}", len_player_anomalies=len(player_anomalies), selected_player=selected_player), expanded=False):
+        with st.expander(t("⚠️ {count} semanas anómalas detectadas para {player}", 
+                            count=len(player_anomalies), 
+                            player=selected_player), expanded=False):
             anom_fmt = player_anomalies.copy()
             anom_fmt['semana'] = anom_fmt['semana'].dt.strftime(t('%d %b %Y'))
             anom_fmt['tipo']   = anom_fmt['direction'].map(
@@ -1090,8 +1106,7 @@ def main():
                     st.markdown(f"**{article['title']}**")
                     st.caption(f"📅 {article['published_at'].strftime('%d/%m/%Y %H:%M')} | "
                              f"Score: {article['sentiment_score']:.2f}")
-                    st.markdown(t("[🔗 Ver artículo]({article['url']})", article=article))
-
+                    st.markdown(t("[🔗 Ver artículo]({url})", url=article['url']))
                 st.markdown("---")
 
     # ============================================================
