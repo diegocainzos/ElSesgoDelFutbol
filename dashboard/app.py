@@ -622,22 +622,26 @@ def main():
 """, unsafe_allow_html=True)
 
     # ============================================================
-    # SIDEBAR — branding + filtros
+    # TOP HEADER / LANGUAGE SELECTOR
     # ============================================================
-    with st.sidebar:
-        # Selector de idioma
-        cols_lang = st.columns([1, 1])
-        with cols_lang[0]:
-            if st.button("🇪🇸 Español"):
+    header_col1, header_col2 = st.columns([10, 1.5])
+    with header_col2:
+        l1, l2 = st.columns(2)
+        with l1:
+            if st.button("🇪🇸", help="Español", use_container_width=True):
                 st.session_state.lang = "es"
                 st.session_state.translations = load_translations("es")
                 st.rerun()
-        with cols_lang[1]:
-            if st.button("🇬🇧 English"):
+        with l2:
+            if st.button("🇬🇧", help="English", use_container_width=True):
                 st.session_state.lang = "en"
                 st.session_state.translations = load_translations("en")
                 st.rerun()
 
+    # ============================================================
+    # SIDEBAR — branding + filtros
+    # ============================================================
+    with st.sidebar:
         st.markdown(f"""
 <div style="text-align:center; padding:0.2rem 0 1rem 0;">
   <div style="font-size:3rem; line-height:1;">⚽</div>
